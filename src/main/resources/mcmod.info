@@ -1,20 +1,19 @@
 {
   "modListVersion": 2,
   "modList": [{
-    "modid": "${modid}",
-    "name": "${modid}",
-    "description": "${description}",
+    "modid": "GreenThumb",
+    "name": "GreenThumb",
+    "description": "Right click on crops to harvest and auto re-plant them.",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "url": "https://github.com/${githuborg}/${modid}",
+    "url": "https://github.com/DoubleDoorDevelopment/GreenThumb",
     "updateUrl": "",
-    "authorList": [ "Dries007", "Doubledoor team" ],
+    "authorList": [ "Dries007", "Doubledoor team", "FritzsHero" ],
     "credits": "",
     "logoFile": "",
     "screenshots": [],
-    "parent": "D3Core",
-    "requiredMods": [ "Forge", "D3Core" ],
-    "dependencies": [ "D3Core" ],
+    "requiredMods": [ "Forge" ],
+    "dependencies": [],
     "dependants": [ ],
     "useDependencyInformation": true
   }]
