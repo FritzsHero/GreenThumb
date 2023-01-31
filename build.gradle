@@ -1,161 +1,82 @@
+
+// For those who want the bleeding edge
 buildscript {
     repositories {
-        mavenCentral()
+        jcenter()
         maven {
             name = "forge"
             url = "http://files.minecraftforge.net/maven"
         }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
-        }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
-        classpath group: 'com.github.rodionmoiseev.gradle.plugins', name: 'idea-utils', version: '0.2'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
     }
 }
+apply plugin: 'net.minecraftforge.gradle.forge'
 
-import groovy.json.*
-
-configurations {
-    compile
-    deployJars
+/*
+// for people who want stable - not yet functional for MC 1.8.8 - we require the forgegradle 2.1 snapshot
+plugins {
+    id "net.minecraftforge.gradle.forge" version "2.0.2"
 }
+*/
+version = "1.0"
+group= "com.yourname.modid" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "modid"
 
-apply plugin: "forge"
-apply plugin: "maven"
-apply plugin: "idea-utils"
-
-group = "net.doubledoordev.greenThumb"
-version = "1.1.0"
-
-targetCompatibility = 1.7
-sourceCompatibility = 1.7
-
-archivesBaseName = 'GreenThumb'
-def githuborg = 'DoubleDoorDevelopment'
-def description = 'Right click on crops to harvest and auto re-plant them.'
 minecraft {
-    version = "1.7.10-10.13.0.1190"
-    runDir = "jars"
-}
-
-repositories {
-    maven {
-         name "DDD repo"
-         url "http://doubledoordev.net/maven/"
-     }
+    version = "1.8.9-11.15.1.1808"
+    runDir = "run"
+    
+    // the mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   snapshot are built nightly.
+    // stable_#            stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not allways work.
+    // simply re-run your setup task after changing the mappings to update your workspace.
+    mappings = "stable_20"
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 }
 
 dependencies {
-    compile "net.doubledoordev.d3core:D3Core:" + project.minecraft.version + "-+:dev"
+    // you may put jars on which you depend on in ./libs
+    // or you may define them like so..
+    //compile "some.group:artifact:version:classifier"
+    //compile "some.group:artifact:version"
+      
+    // real examples
+    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // the 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    //provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // the deobf configurations:  'deobfCompile' and 'deobfProvided' are the same as the normal compile and provided,
+    // except that these dependencies get remapped to your current MCP mappings
+    //deobfCompile 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+    //deobfProvided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // for more info...
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
 }
 
-if (System.getenv().BUILD_NUMBER != null) version += "." + System.getenv().BUILD_NUMBER
-def builder = new groovy.json.JsonBuilder()
-builder (version: version, mcversion: project.minecraft.version, apiversion: project.minecraft.apiVersion)
-new File("versions.json").write(builder.toPrettyString())
+processResources
+{
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
 
-processResources {
+    // replace stuff in mcmod.info, nothing else
     from(sourceSets.main.resources.srcDirs) {
-        include '**/*.info'
-        expand 'version':project.version, 'mcversion':project.minecraft.version, 'modid':project.archivesBaseName, 'githuborg':githuborg, 'description':description
+        include 'mcmod.info'
+                
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
     }
-
+        
+    // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
-        exclude '**/*.info'
-    }
-}
-
-task sourcesJar(type: Jar) {
-    from "LICENSE.txt"
-    from sourceSets.main.allSource
-    classifier = 'src'
-    appendix = project.minecraft.version
-}
-
-task deobfJar(type: Jar) {
-    from "LICENSE.txt"
-    from sourceSets.main.output
-    from (sourceSets.main.allSource.srcDirs) {
-        include '**/*.java'
-    }
-	classifier = 'dev'
-    appendix = project.minecraft.version
-}
-
-jar {
-    from "LICENSE.txt"
-    appendix = project.minecraft.version
-}
-
-artifacts {
-	archives jar
-    archives sourcesJar
-    archives deobfJar
-}
-
-idea {
-    project {
-        copyright {
-            name = 'New BSD License'
-            license = file('LICENSE.txt')
-        }
-    }
-}
-
-uploadArchives {
-    if (project.hasProperty("dddUser") && project.hasProperty("dddPass")) {
-        repositories {
-            mavenDeployer {
-                repository(url: "http://doubledoordev.net:8081/artifactory/mods") {
-                    authentication(userName: dddUser, password: dddPass)
-                }
-                pom {
-                    groupId = project.group
-                    version = project.minecraft.version + "-" + project.version
-                    artifactId = project.archivesBaseName
-                    project {
-                        name project.archivesBaseName
-                        packaging 'jar'
-                        description = description
-                        url 'https://github.com/' + githuborg + '/' + project.archivesBaseName
-
-                        scm {
-                            url 'https://github.com/' + githuborg + '/' + project.archivesBaseName
-                            connection 'scm:git:git://github.com/' + githuborg + '/' + project.archivesBaseName + '.git'
-                            developerConnection 'scm:git:git@github.com:' + githuborg + '/' + project.archivesBaseName + '.git'
-                        }
-
-                        issueManagement {
-                            system 'github'
-                            url 'https://github.com/' + githuborg + '/' + project.archivesBaseName + '/issues'
-                        }
-
-                        licenses  {
-                            license  {
-                                name 'New BSD License'
-                                url 'https://raw.github.com/' + githuborg + '/' + project.archivesBaseName + '/master/LICENCE.txt'
-                                distribution 'repo'
-                            }
-                        }
-
-                        developers {
-                            developer {
-                                id 'Dries007'
-                                name 'Dries007'
-                                roles { role 'developer' }
-                            }
-                            developer {
-                                id 'Claycorp'
-                                name 'Claycorp'
-                                roles { role 'developer' }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        exclude 'mcmod.info'
     }
 }
