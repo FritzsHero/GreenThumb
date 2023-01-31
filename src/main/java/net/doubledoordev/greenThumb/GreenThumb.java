@@ -33,8 +33,6 @@ public class GreenThumb
     @Mod.Instance(MODID)
     public static GreenThumb instance;
 
-    List<String> seedMethodNames = ImmutableList.of("func_149866_i", "i");
-    Method methodSeed;
     private Configuration configuration;
     boolean checkGrowth = true;
 
@@ -45,16 +43,6 @@ public class GreenThumb
 
         configuration = new Configuration(event.getSuggestedConfigurationFile());
         syncConfig();
-
-        for (Method method : BlockCrops.class.getDeclaredMethods())
-        {
-            // Hackery!
-            if (method.getReturnType().isAssignableFrom(Item.class) && method.getParameterTypes().length == 0 && seedMethodNames.contains(method.getName()))
-            {
-                methodSeed = method;
-                methodSeed.setAccessible(true);
-            }
-        }
     }
 
 
@@ -64,27 +52,18 @@ public class GreenThumb
         if (event.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) return;
         if (event.entityPlayer.getHeldItem() != null) return;
-        if (methodSeed == null) return;
 
         IBlockState blockState = event.world.getBlockState(event.pos);
-        Block block = event.world.getBlockState(event.pos).getBlock();
+        Block block = blockState.getBlock();
         
         if (block instanceof BlockCrops)
         {
             BlockCrops crop = ((BlockCrops) block);
             if (checkGrowth && (Integer) crop.getMetaFromState(blockState) != 7) return;
             java.util.List<ItemStack> drops = crop.getDrops(event.world, event.pos, blockState, 0);
-            boolean foundSeed = false;
-            event.world.setBlockToAir(event.pos);
+            event.world.setBlockState(event.pos, blockState.withProperty(BlockCrops.AGE, 0), 3);
             for (ItemStack itemStack : drops)
             {
-                Item seed = ((Item) methodSeed.invoke(crop));
-                if (itemStack.getItem() == seed && !foundSeed)
-                {
-                    foundSeed = true;
-                    event.world.setBlockState(event.pos, blockState.withProperty(BlockCrops.AGE, 0), 3);
-                    continue;
-                }
                 event.world.spawnEntityInWorld(new EntityItem(event.world, event.entityPlayer.posX, event.entityPlayer.posY, event.entityPlayer.posZ, itemStack));
             }
         }
@@ -93,16 +72,9 @@ public class GreenThumb
             BlockNetherWart crop = ((BlockNetherWart) block);
             if (checkGrowth && crop.getMetaFromState(blockState) != 3) return;
             java.util.List<ItemStack> drops = crop.getDrops(event.world, event.pos, blockState, 0);
-            boolean foundSeed = false;
-            event.world.setBlockToAir(event.pos);
+            event.world.setBlockState(event.pos, blockState.withProperty(BlockCrops.AGE, 0), 3);
             for (ItemStack itemStack : drops)
             {
-                if (!foundSeed)
-                {
-                    foundSeed = true;
-                    event.world.setBlockState(event.pos, blockState.withProperty(BlockCrops.AGE, 0), 3);
-                    continue;
-                }
                 event.world.spawnEntityInWorld(new EntityItem(event.world, event.entityPlayer.posX, event.entityPlayer.posY, event.entityPlayer.posZ, itemStack));
             }
         }
